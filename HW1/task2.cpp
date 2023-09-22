@@ -5,15 +5,20 @@
 class Solution {
 public:
   std::vector<std::string> generateParenthesis(int n) {
-    std::set<std::string> last;
+    std::set<std::string> last; // Here we store all parenthesis with size i on i-th step
     last.insert("()");
     for (size_t i = 1; i < n; i++) {
-      last = genPar(last);
+      last = addParenthesis(last);
     }
-    return {last.begin(), last.end()};
+    return {last.begin(), last.end()}; // so, on last step `last` will contain all parnthesis with size n
   }
 private:
-  std::set<std::string> genPar(const std::set<std::string> &prev) {
+  /**
+   * add 1 level of parenthesis and keep their correctness.
+   * @param prev previous parenthesis
+   * @return `prev` with additional parenthesis
+   */
+  std::set<std::string> addParenthesis(const std::set<std::string> &prev) {
     std::set<std::string> result;
     for (const auto &par: prev) {
       result.insert("()" + par);
@@ -27,7 +32,12 @@ private:
             counter--;
         }
         if (counter == 0) {
-          result.insert("(" + par.substr(0, i + 1) + ")" + par.substr(i + 1));
+          // if counter == 0 it means we have 2 correct parts:
+          // xy => with new depth level it may be (x)y and x(y)
+          const auto &x = par.substr(0, i + 1);
+          const auto &y = par.substr(i + 1);
+          result.insert("(" + x + ")" + y);
+          result.insert(x + "(" + y + ")");
         }
       }
       result.insert(par + "()");
