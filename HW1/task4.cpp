@@ -10,13 +10,19 @@ class Solution {
   using Board = std::vector<std::vector<char>>;
   using BitField = std::bitset<BoardSize>;
 
+  /*
+   * States for each cell in the board after each iteration
+   */
   enum class State {
-    FAILED,
-    MULT_CHOICE,
-    UPDATED,
-    FILLED,
+    FAILED, // when we tried to bruteforce and failed
+    MULT_CHOICE, // multiple choice for all cells => we try to bruteforce
+    UPDATED, // successfully updated at least one cell
+    FILLED, // board filled. task solved.
   };
 
+  /**
+   * This class helps to find allowed numbers for cell
+   */
   class Restrict {
   public:
     static constexpr char empty = '.';
@@ -35,6 +41,11 @@ class Solution {
       }
     }
 
+    /**
+     * @param x horizontal coordinate
+     * @param y vertical coordinate
+     * @return all numbers we might put in this cell
+     */
     BitField allowed(size_t x, size_t y) const {
       if (board.get().at(x).at(y) != empty) {
         return {};
@@ -43,6 +54,11 @@ class Solution {
       }
     }
 
+    /**
+     * @param x horizontal coordinate
+     * @param y vertical coordinate
+     * @return any number we might put in this cell
+     */
     size_t getNumber(size_t x, size_t y) const {
       auto all_num = allowed(x, y);
       for (size_t num = 0; num < BoardSize; num++) {
@@ -51,6 +67,42 @@ class Solution {
         }
       }
       std::abort();
+    }
+
+    /**
+     * @return the most suitable number across board for any free cell
+     */
+    std::optional<std::pair<size_t, size_t>> suitableNumber() const {
+      // looking for cell with min numbers we can put in it (time-optimization)
+      std::pair<size_t, size_t> res = {-1, -1};
+      size_t mi = 9;
+      for (int i = 0; i < BoardSize; i++) {
+        for (int l = 0; l < BoardSize; l++) {
+          if (board.get()[i][l] == Restrict::empty) {
+            auto maybe_res = allowed(i, l);
+            if (maybe_res.count() == 0) {
+              return std::nullopt;
+            }
+            if (maybe_res.count() < mi) {
+              res = std::make_pair(i, l);
+              mi = maybe_res.count();
+            }
+          }
+        }
+      }
+      return res;
+    }
+
+    /**
+     * @return true if this board filled
+     */
+    bool filled() const {
+      return !std::any_of(
+        std::begin(board.get()), std::end(board.get()),
+        [letterToFind = Restrict::empty](auto inner) {
+          return std::find(std::begin(inner), std::end(inner), letterToFind) != end(inner);
+        }
+      );
     }
 
   private:
@@ -107,7 +159,7 @@ class Solution {
   };
 public:
   void solveSudoku(Board& board) {
-    auto x = solver(board);
+    solver(board);
   }
 
 private:
@@ -124,28 +176,17 @@ private:
         case State::FAILED:
           return false;
         case State::MULT_CHOICE: {
-          std::pair<size_t, size_t> res = {-1, -1};
-          size_t mi = 9;
+          // bruteforce cell with min numbers
           const auto constraint = Restrict(board);
-          for (int i = 0; i < BoardSize; i++) {
-            for (int l = 0; l < BoardSize; l++) {
-              if (board[i][l] == Restrict::empty) {
-                auto maybe_res = constraint.allowed(i, l);
-                if (maybe_res.count() == 0) {
-                  return false;
-                }
-                if (maybe_res.count() < mi) {
-                  res = std::make_pair(i, l);
-                  mi = maybe_res.count();
-                }
-              }
-            }
+          const auto best_coord = constraint.suitableNumber();
+          if (!best_coord) {
+            return false;
           }
-          const auto allowed = constraint.allowed(res.first, res.second);
+          const auto allowed = constraint.allowed(best_coord->first, best_coord->second);
           for (int l = 0; l < BoardSize; l++) {
             if (allowed.test(l)) {
               auto prev = board;
-              board[res.first][res.second] = l + '1';
+              board[best_coord->first][best_coord->second] = l + '1';
               if (solver(board)) {
                 return true;
               } else {
@@ -159,6 +200,9 @@ private:
     }
   }
 
+  /**
+   * Fill all cells where number determined (only one is possible)
+   */
   State fill(Board &board) {
     State changed = State::FAILED;
     auto restr = Restrict(board);
@@ -177,12 +221,7 @@ private:
         }
       }
     }
-    auto full = !std::any_of(
-      std::begin(board), std::end(board),
-      [letterToFind = Restrict::empty](auto inner) {
-        return std::find(std::begin(inner), std::end(inner), letterToFind) != end(inner);
-      }
-    );
+    auto full = restr.filled();
     if (full) {
       return State::FILLED;
     }
