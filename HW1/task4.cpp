@@ -240,5 +240,5 @@ int main() {
                                       {'5','.','3','7','.','.','.','.','8'},
                                       {'4','7','.','.','.','1','.','.','.'}};
   Solution().solveSudoku(x);
-  [[maybe_unusedg]] int xx = 0;
+  [[maybe_unused]] int xx = 0;
 }
