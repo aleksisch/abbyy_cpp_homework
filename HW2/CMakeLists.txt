@@ -9,6 +9,7 @@ add_executable(task3 task3.cpp)
 add_executable(task4 task4.cpp)
 add_executable(task5 task5/task5.cpp)
 add_executable(task6 task6.cpp)
+add_executable(leetcode1 leetcode1.cpp)
 add_executable(leetcode2 leetcode2.cpp)
 #target_sources(task5
 #        PUBLIC
