@@ -31,7 +31,7 @@ public:
      * If exists loop => it contains extra vertex, find it using input and `in_two` if it is not empty
      * otherwise `in_two` exists => just find last edge (from, to) with `to` vertex.
      */
-    std::unordered_set<int> maybe_twice;
+    std::vector<int> maybe_twice(edges.size(), 0);
     int ma = 0;
     std::optional<int> in_two;
     for (const auto &edge: edges) {
@@ -40,10 +40,10 @@ public:
       graph[from].emplace(to);
       idx.emplace(std::make_pair(from, to), idx.size());
       ma = std::max(ma, std::max(from, to));
-      if (maybe_twice.count(to)) {
+      if (maybe_twice[to] != 0) {
         in_two.emplace(to);
       }
-      maybe_twice.emplace(to);
+      maybe_twice[to]++;
     }
     visited.resize(ma + 1, -1);
     for (const auto &[from, tos] : graph) {
