@@ -28,19 +28,7 @@ struct Coro {
 
     void return_void(){}
 
-    auto yield_value(int val){
-      m_value.emplace(val);
-      return awaiter{this};
-    }
-
     std::optional<int> m_value;
-  };
-
-  struct awaiter : std::suspend_always {
-    constexpr int await_resume() const { return m_p->m_value.value(); }
-
-    constexpr awaiter(promise_type* p) : m_p(p) {}
-    promise_type* m_p;
   };
 
 
@@ -54,11 +42,11 @@ struct Coro {
 
 Coro myCoro() {
   std::cout << "Hello, World!" << std::endl;
-  co_yield 1;
+  co_await std::suspend_always();
   std::cout << "I am coroutine!" << std::endl;
-  co_yield 2;
+  co_await std::suspend_always();
   std::cout << "Nice to meet you!" << std::endl;
-  co_yield 3;
+  co_await std::suspend_always();
   std::cout << "Goodbye!" << std::endl;
   co_return;
 }

@@ -8,15 +8,6 @@
 #include <map>
 #include <iostream>
 
-struct pairhash {
-public:
-  template <typename T, typename U>
-  std::size_t operator()(const std::pair<T, U> &x) const
-  {
-    return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
-  }
-};
-
 class Solution {
   using WeightT = long long;
   using VertexId = int;

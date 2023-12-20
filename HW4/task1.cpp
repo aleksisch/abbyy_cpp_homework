@@ -39,7 +39,7 @@ void measure(const int rw_ratio = 1) {
   T foo1;
   threads.reserve(8);
   for (int i = 0; i < 8; i++) {
-    threads.emplace_back([&]() mutable {
+    threads.emplace_back([&foo1, rw_ratio]() mutable {
       for (int i = 0; i < 10000000; i++) {
         auto val = foo1.Get();
         val += 1;
@@ -60,11 +60,11 @@ int main() {
   const auto end11 = std::chrono::high_resolution_clock::now();
 
   const auto now125 = std::chrono::high_resolution_clock::now();
-  measure<Foo2>(25);
+  measure<Foo1>(25);
   const auto end125 = std::chrono::high_resolution_clock::now();
 
   const auto now21 = std::chrono::high_resolution_clock::now();
-  measure<Foo1>(1);
+  measure<Foo2>(1);
   const auto end21 = std::chrono::high_resolution_clock::now();
 
   const auto now225 = std::chrono::high_resolution_clock::now();
@@ -78,19 +78,23 @@ int main() {
             << duration_cast<milliseconds>(end21 - now21).count() << std::endl
             << duration_cast<milliseconds>(end225 - now225).count() << std::endl;
   /**
-   * It prints smth like:
+   * Вывод примерно такой:
    *
-   * 20229 --- Foo1 rw_ratio 1
-   * 5226 --- Foo2 rw_ratio 1
-   * 22022 --- Foo1 rw_ratio 25
-   * 4617 --- Foo2 rw_ratio 25
+   * 19657 --- Foo1 rw_ratio 1
+   * 10917 --- Foo1 rw_ratio 25
+   * 24478 --- Foo2 rw_ratio 1
+   * 6391 --- Foo2 rw_ratio 25
    *
-   * First two launches is same number of read-write operations.
-   * Other 2 launches with read-write ratio 25 (on 25 read 1 write)
-   * Probably, different time with different rw-ratio might be explained by branch-predictor.
+   * Первые два запуска с unique_lock и read-write ratio 1 и 25 (на 25 чтений 1 запись).
+   * Два следующих с shared_lock и read-write ratio 1 и 25
    *
-   * Time with shared mutex 4 times lower then with regular one. This can be explained by
-   * lack of synchronization for read operation with shared mutex.
+   * Вероятно, второй запуск с обычным lock быстрее первого, за счет того, что не приходится обновлять кэши на разных ядрах,
+   * т.к. записываем обновляем значение переменной реже.
+   *
+   * shared_mutex дольше обычного, но позволяет быстрее читать.
+   * Поэтому, когда rw-ratio = 1, то программа работает даже медленнее.
+   * Однако с rw-ratio = 25 есть ускорение в 3 раза, так как большая часть операций - чтение, и все потоки могут их делать
+   * параллельно.
    */
   return 0;
 }
